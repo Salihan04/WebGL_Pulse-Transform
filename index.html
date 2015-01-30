@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+
+<body>
+	<script src="js/three.min.js"></script>
+
+	<script type="shader/ fragment" id="fragment">
+		precision mediump float;
+
+		varying vec3 vNormal;
+
+		void main() {
+			vec3 light = vec3(0.5, 0.2, 1.0);
+
+			light = normalize(light);
+
+			float dProd = max(0.0, dot(vNormal, light));
+
+			gl_FragColor = vec4(1.0, dProd, 1.0, 1.0);
+		}
+	</script>
+
+	<script type="shader/ vertex" id="vertex">
+		precision mediump float;
+
+		attribute float displacement;
+
+		varying vec3 vNormal;
+
+		uniform float amplitude;
+
+		void main() {
+			vNormal = normal;
+
+			vec3 newPosition = position + normal * vec3(displacement * amplitude);
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+		}
+	</script>
+	<script type="text/javascript">
+		var WIDTH = 700;
+		var HEIGHT = 500;
+		var FOV = 75;
+		var ASPECT = WIDTH / HEIGHT;
+		var NEAR = 0.1;
+		var FAR = 1000;
+
+		var scene = new THREE.Scene();
+		var camera = new THREE.PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
+
+		var renderer = new THREE.WebGLRenderer();
+		renderer.setSize(WIDTH, HEIGHT);
+		document.body.appendChild(renderer.domElement);
+
+		
+
+		//Set the uniform variables for the shaders
+		var  uniforms = {
+			amplitude: {
+				type: "f",
+				value: 0
+			}
+		};
+
+		//Set the attribute variables for the  shaders
+		var attributes = {
+			displacement: {
+				type: "f",
+				value: []
+			}
+		};
+
+		//Prepare the sphere
+		var geometry = new THREE.SphereGeometry(2, 32, 32);
+		var material = new THREE.ShaderMaterial({
+			uniforms: uniforms,
+			attributes: attributes,
+			vertexShader: document.getElementById("vertex").textContent,
+			fragmentShader: document.getElementById("fragment").textContent
+		});
+		var sphere = new THREE.Mesh(geometry, material);
+
+		var vertices = sphere.geometry.vertices;
+		var values = attributes.displacement.value;
+
+		//Set the values for the displacement for each vertex in the sphere
+		for(var i = 0; i < vertices.length; i++) {
+			values.push(Math.random() * 2);
+		}
+
+		//Add sphere to scene
+		scene.add(sphere);
+
+		camera.position.z = 10;
+
+		function render() {
+			requestAnimationFrame(render);
+
+			//Vary the amplitude with time in the range -1 to 1
+			var timer = new Date().getTime() * 0.0005;
+			uniforms.amplitude.value = Math.sin(timer);
+
+			//Adding rotation
+			sphere.rotation.x += 0.005;
+			sphere.rotation.y += 0.005;
+			sphere.rotation.z += 0.005;
+
+			//Randomly move sphere around
+			sphere.position.x = Math.cos(timer);
+			sphere.position.y = Math.cos(timer);
+			sphere.position.z = Math.cos(timer);
+
+			renderer.render(scene, camera);
+		}
+
+		render();
+	</script>
+</body>
+</html>
